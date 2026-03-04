@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Generator - Fourline Travels</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🚗 Fourline Travels</h1>
+            <p>Automated Transport Invoice Generation System</p>
+            <p class="company-info">645 Stelton St, Teaneck, NJ 07666 | 551-313-8500</p>
+        </header>
+
+        <main class="main">
+            <div class="card">
+                <h2>Generate Invoices</h2>
+                
+                <form id="invoiceForm" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="mode">Billing Mode</label>
+                        <select id="mode" name="mode" required>
+                            <option value="">-- Select Mode --</option>
+                            <option value="UHC">UHC (Distance-Based)</option>
+                            <option value="NJVETERANS">Private Pay - NJ Veterans (Hourly)</option>
+                            <option value="JEWISHHOME">Private Pay - Jewish Home (Distance)</option>
+                        </select>
+                    </div>
+
+                    <div id="invoiceNumberGroup" class="form-group" style="display:none;">
+                        <label for="invoiceNumber">Jewish Home Invoice File Name</label>
+                        <input type="text" id="invoiceNumber" name="invoiceNumber" placeholder="e.g., JH00160">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="file">Upload Excel File</label>
+                        <div class="file-input-wrapper" id="fileWrapper">
+                            <input type="file" id="file" name="file" accept=".xlsx" required>
+                            <span class="file-label">📤 Click or drag file here</span>
+                        </div>
+                        <small id="fileName" class="file-name"></small>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">✨ Generate Invoices</button>
+                </form>
+
+                <div id="result" class="result" style="display:none;">
+                    <h3>✅ Processing Complete</h3>
+                    <div id="resultContent"></div>
+                    <div class="button-group">
+                        <button id="downloadBtn" type="button" class="btn btn-success" style="display:none;">📥 Download Invoices ZIP</button>
+                        <button id="downloadExcelBtn" type="button" class="btn btn-info" style="display:none;">📊 Download Processed Excel</button>
+                        <button type="button" class="btn btn-secondary" onclick="location.reload()">🔄 Process Another</button>
+                    </div>
+                </div>
+
+                <div id="error" class="error" style="display:none;"></div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>© 2024 Fourline Travels LLC | www.fourlinetravels.com</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
