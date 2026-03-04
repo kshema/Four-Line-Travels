@@ -59,9 +59,9 @@ def process():
         if not mode or mode not in BILLING_MODES:
             return jsonify({'error': 'Invalid billing mode', 'success': False}), 400
         
-        # Jewish Home mode requires invoice number
-        if mode == 'JEWISHHOME' and not invoice_number:
-            return jsonify({'error': 'Invoice number required for Jewish Home billing', 'success': False}), 400
+        # Both Jewish Home and NJ Veterans require invoice number
+        if mode in ['JEWISHHOME', 'NJVETERANS'] and not invoice_number:
+            return jsonify({'error': f'Invoice number required for {mode} billing', 'success': False}), 400
         
         file = request.files['file']
         if not file or file.filename == '':
@@ -88,9 +88,10 @@ def process():
         
         try:
             if mode == 'JEWISHHOME':
-                df = pd.read_excel(upload_path)
-                df.columns = df.columns.str.lower().str.strip()
-                results = processor._process_jewishhome(df, invoice_number)
+                processor.process_excel(upload_path, invoice_number)
+                results = processor._process_jewishhome(pd.read_excel(upload_path), invoice_number)
+            elif mode == 'NJVETERANS':
+                results = processor.process_excel(upload_path, invoice_number)
             else:
                 results = processor.process_excel(upload_path)
             

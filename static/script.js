@@ -1,11 +1,21 @@
 document.getElementById('mode').addEventListener('change', function() {
     const invoiceNumberGroup = document.getElementById('invoiceNumberGroup');
+    const invoiceHint = document.getElementById('invoiceHint');
+    const invoiceInput = document.getElementById('invoiceNumber');
+    
     if (this.value === 'JEWISHHOME') {
         invoiceNumberGroup.style.display = 'block';
-        document.getElementById('invoiceNumber').required = true;
+        invoiceInput.placeholder = 'e.g., JH00160';
+        invoiceInput.required = true;
+        invoiceHint.textContent = 'Format: Letters + numbers (e.g., JH00160)';
+    } else if (this.value === 'NJVETERANS') {
+        invoiceNumberGroup.style.display = 'block';
+        invoiceInput.placeholder = 'e.g., NJVA00050';
+        invoiceInput.required = true;
+        invoiceHint.textContent = 'Format: Letters + numbers (e.g., NJVA00050)';
     } else {
         invoiceNumberGroup.style.display = 'none';
-        document.getElementById('invoiceNumber').required = false;
+        invoiceInput.required = false;
     }
 });
 

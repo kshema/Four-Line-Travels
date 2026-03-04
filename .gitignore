@@ -10,7 +10,8 @@ __pycache__/
 
 # User uploads and generated files
 uploads/
-output/
+outputs/
+Trip_Data_Store
 
 # IDE
 .vscode/
