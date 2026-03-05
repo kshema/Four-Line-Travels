@@ -1,6 +1,7 @@
-from flask import Flask, render_template, request, send_file, jsonify
+from flask import Flask, render_template, request, send_file, jsonify, after_this_request
 import os
 import logging
+import shutil
 from datetime import datetime
 from config import BILLING_MODES, UPLOAD_FOLDER, OUTPUT_FOLDER, COMPANY_INFO
 from logic.processor import BillingProcessor
@@ -28,6 +29,16 @@ os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
+
+def cleanup_folder(folder_path):
+    """Clean up output folder after download"""
+    try:
+        if os.path.exists(folder_path):
+            shutil.rmtree(folder_path)
+            logger.info(f"Cleaned up folder: {folder_path}")
+    except Exception as e:
+        logger.warning(f"Error cleaning up folder: {str(e)}")
 
 
 @app.route('/')
@@ -187,6 +198,7 @@ def download_excel(timestamp):
         file_path = os.path.join(output_folder, excel_file)
         
         logger.info(f"Sending Excel file: {file_path}")
+    
         
         return send_file(
             file_path,
@@ -198,6 +210,51 @@ def download_excel(timestamp):
         logger.error(f"Download Excel error: {str(e)}", exc_info=True)
         return jsonify({'error': f'Download failed: {str(e)}'}), 500
 
-
+@app.route('/api/clear-files', methods=['POST'])
+def clear_files():
+    """Clear all files in uploads and outputs folders"""
+    try:
+        cleared_count = 0
+        cleared_items = []
+        
+        # Clear uploads folder
+        if os.path.exists(app.config['UPLOAD_FOLDER']):
+            for filename in os.listdir(app.config['UPLOAD_FOLDER']):
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                try:
+                    if os.path.isfile(file_path):
+                        os.remove(file_path)
+                        cleared_count += 1
+                        cleared_items.append(f"uploads/{filename}")
+                    elif os.path.isdir(file_path):
+                        shutil.rmtree(file_path)
+                        cleared_count += 1
+                        cleared_items.append(f"uploads/{filename}")
+                except Exception as e:
+                    logger.warning(f"Error deleting {file_path}: {str(e)}")
+        
+        # Clear outputs folder
+        if os.path.exists(OUTPUT_FOLDER):
+            for filename in os.listdir(OUTPUT_FOLDER):
+                file_path = os.path.join(OUTPUT_FOLDER, filename)
+                try:
+                    if os.path.isfile(file_path):
+                        os.remove(file_path)
+                        cleared_count += 1
+                        cleared_items.append(f"outputs/{filename}")
+                    elif os.path.isdir(file_path):
+                        shutil.rmtree(file_path)
+                        cleared_count += 1
+                        cleared_items.append(f"outputs/{filename}")
+                except Exception as e:
+                    logger.warning(f"Error deleting {file_path}: {str(e)}")
+        
+        logger.info(f"Cleared {cleared_count} files/folders: {cleared_items}")
+        return jsonify({'success': True, 'cleared': cleared_count, 'items': cleared_items})
+    
+    except Exception as e:
+        logger.error(f"Error clearing files: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+    
 if __name__ == '__main__':
     app.run(debug=True, host='127.0.0.1', port=5000)

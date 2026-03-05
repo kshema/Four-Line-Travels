@@ -1,3 +1,6 @@
+let currentTimestamp = null;
+
+// Mode change handler
 document.getElementById('mode').addEventListener('change', function() {
     const invoiceNumberGroup = document.getElementById('invoiceNumberGroup');
     const invoiceHint = document.getElementById('invoiceHint');
@@ -19,6 +22,123 @@ document.getElementById('mode').addEventListener('change', function() {
     }
 });
 
+// Display results in table format
+function displayResults(data) {
+    const resultDiv = document.getElementById('result');
+    const resultContent = document.getElementById('resultContent');
+    const downloadBtn = document.getElementById('downloadBtn');
+    
+    // Handle missing grand_total
+    const grandTotal = data.grand_total !== undefined ? data.grand_total : data.total_revenue;
+    
+    let html = `
+        <table class="results-table">
+            <tr>
+                <td><strong>Total Rows:</strong></td>
+                <td>${data.total_rows}</td>
+            </tr>
+            <tr>
+                <td><strong>Successful:</strong></td>
+                <td>${data.successful}</td>
+            </tr>
+            <tr>
+                <td><strong>Failed:</strong></td>
+                <td>${data.failed}</td>
+            </tr>
+            <tr>
+                <td><strong>Total Revenue:</strong></td>
+                <td>$${parseFloat(data.total_revenue || 0).toFixed(2)}</td>
+            </tr>
+            <tr style="border-top: 2px solid #ccc; font-weight: bold;">
+                <td><strong>Grand Total:</strong></td>
+                <td>$${parseFloat(grandTotal || 0).toFixed(2)}</td>
+            </tr>
+        </table>
+    `;
+    
+    resultContent.innerHTML = html;
+    resultDiv.style.display = 'block';
+    downloadBtn.style.display = 'inline-block';
+    
+    // Store timestamp for download
+    currentTimestamp = data.timestamp;
+}
+
+// Download both files (ZIP + Excel) - only once
+document.getElementById('downloadBtn').addEventListener('click', async function() {
+    if (!currentTimestamp) return;
+    
+    const downloadBtn = document.getElementById('downloadBtn');
+    downloadBtn.disabled = true;
+    downloadBtn.textContent = '⏳ Downloading...';
+    
+    try {
+        // Download ZIP file
+        const zipResponse = await fetch(`/api/download/${currentTimestamp}`);
+        if (!zipResponse.ok) {
+            throw new Error('Failed to download ZIP file');
+        }
+        const zipBlob = await zipResponse.blob();
+        const zipUrl = window.URL.createObjectURL(zipBlob);
+        const zipLink = document.createElement('a');
+        zipLink.href = zipUrl;
+        zipLink.download = `invoices_${currentTimestamp}.zip`;
+        document.body.appendChild(zipLink);
+        zipLink.click();
+        window.URL.revokeObjectURL(zipUrl);
+        document.body.removeChild(zipLink);
+        
+        // Download Excel file (1 second delay)
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const excelResponse = await fetch(`/api/download-excel/${currentTimestamp}`);
+        if (!excelResponse.ok) {
+            throw new Error('Failed to download Excel file');
+        }
+        const excelBlob = await excelResponse.blob();
+        const excelUrl = window.URL.createObjectURL(excelBlob);
+        const excelLink = document.createElement('a');
+        excelLink.href = excelUrl;
+        excelLink.download = `processed_${currentTimestamp}.xlsx`;
+        document.body.appendChild(excelLink);
+        excelLink.click();
+        window.URL.revokeObjectURL(excelUrl);
+        document.body.removeChild(excelLink);
+        
+        // Clear files after downloads complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        await clearAllFiles();
+        
+        downloadBtn.disabled = false;
+        downloadBtn.textContent = '📥 Download Files (ZIP + Excel)';
+        
+    } catch (error) {
+        console.error('Download error:', error);
+        showError('Download failed: ' + error.message);
+        downloadBtn.disabled = false;
+        downloadBtn.textContent = '📥 Download Files (ZIP + Excel)';
+    }
+});
+
+// Clear all files after download
+async function clearAllFiles() {
+    try {
+        const response = await fetch('/api/clear-files', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        const data = await response.json();
+        if (data.success) {
+            console.log(`✓ Cleared ${data.cleared} files/folders`);
+        }
+    } catch (error) {
+        console.error('Clear files error:', error);
+    }
+}
+
+// Form submission
 document.getElementById('invoiceForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     
@@ -29,6 +149,7 @@ document.getElementById('invoiceForm').addEventListener('submit', async function
     document.getElementById('error').style.display = 'none';
     document.getElementById('error').textContent = '';
     
+    // Validation
     if (!mode) {
         showError('Please select a billing mode');
         return;
@@ -39,8 +160,8 @@ document.getElementById('invoiceForm').addEventListener('submit', async function
         return;
     }
 
-    if (mode === 'JEWISHHOME' && !invoiceNumber) {
-        showError('Please enter an invoice number for Jewish Home billing');
+    if ((mode === 'JEWISHHOME' || mode === 'NJVETERANS') && !invoiceNumber) {
+        showError(`Please enter an invoice number for ${mode} billing`);
         return;
     }
     
@@ -82,82 +203,7 @@ document.getElementById('invoiceForm').addEventListener('submit', async function
     }
 });
 
-function displayResults(data) {
-    const resultContent = document.getElementById('resultContent');
-    const downloadBtn = document.getElementById('downloadBtn');
-    const downloadExcelBtn = document.getElementById('downloadExcelBtn');
-    
-    resultContent.innerHTML = `
-        <table class="results-table">
-            <tr>
-                <td><strong>Total Rows:</strong></td>
-                <td>${data.total_rows}</td>
-            </tr>
-            <tr>
-                <td><strong>Successful:</strong></td>
-                <td><span class="success">${data.successful}</span></td>
-            </tr>
-            <tr>
-                <td><strong>Failed:</strong></td>
-                <td><span class="error">${data.failed}</span></td>
-            </tr>
-            <tr>
-                <td><strong>Total Revenue:</strong></td>
-                <td>$${parseFloat(data.total_revenue).toFixed(2)}</td>
-            </tr>
-            <tr>
-                <td><strong>Invoices Generated:</strong></td>
-                <td>${data.invoices_generated}</td>
-            </tr>
-        </table>
-    `;
-    
-    if (data.timestamp) {
-        downloadBtn.onclick = () => downloadFile(`/api/download/${data.timestamp}`, `invoices_${data.timestamp}.zip`);
-        downloadBtn.style.display = 'inline-block';
-        
-        downloadExcelBtn.onclick = () => downloadFile(`/api/download-excel/${data.timestamp}`, `processed_${data.timestamp}.xlsx`);
-        downloadExcelBtn.style.display = 'inline-block';
-    }
-    
-    document.getElementById('result').style.display = 'block';
-}
-
-function downloadFile(url, filename) {
-    fetch(url)
-        .then(response => {
-            if (!response.ok) {
-                const contentType = response.headers.get('content-type');
-                if (contentType && contentType.includes('application/json')) {
-                    return response.json().then(data => {
-                        throw new Error(data.error || 'Download failed');
-                    });
-                } else {
-                    throw new Error('Download failed with status ' + response.status);
-                }
-            }
-            return response.blob();
-        })
-        .then(blob => {
-            if (blob.type !== 'application/zip' && blob.type !== 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
-                throw new Error('Invalid file received');
-            }
-            
-            const link = document.createElement('a');
-            const href = window.URL.createObjectURL(blob);
-            link.href = href;
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            window.URL.revokeObjectURL(href);
-            document.body.removeChild(link);
-        })
-        .catch(error => {
-            console.error('Download error:', error);
-            showError('Download failed: ' + error.message);
-        });
-}
-
+// Show error message
 function showError(message) {
     const errorDiv = document.getElementById('error');
     errorDiv.textContent = message;
@@ -165,7 +211,7 @@ function showError(message) {
     console.error('Error:', message);
 }
 
-// File handling
+// File handling - drag and drop + click
 const fileWrapper = document.getElementById('fileWrapper');
 const fileInput = document.getElementById('file');
 const fileLabel = document.querySelector('.file-label');
@@ -178,16 +224,18 @@ fileWrapper.addEventListener('click', (e) => {
     }
 });
 
-// Drag and drop
+// Drag over
 fileWrapper.addEventListener('dragover', (e) => {
     e.preventDefault();
     fileWrapper.classList.add('drag-over');
 });
 
+// Drag leave
 fileWrapper.addEventListener('dragleave', () => {
     fileWrapper.classList.remove('drag-over');
 });
 
+// Drop
 fileWrapper.addEventListener('drop', (e) => {
     e.preventDefault();
     fileWrapper.classList.remove('drag-over');
@@ -197,9 +245,10 @@ fileWrapper.addEventListener('drop', (e) => {
     }
 });
 
-// File change
+// File input change
 fileInput.addEventListener('change', updateFileName);
 
+// Update file name display
 function updateFileName() {
     if (fileInput.files.length > 0) {
         const name = fileInput.files[0].name;
