@@ -1,12 +1,13 @@
 import logging
 import pandas as pd
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Spacer
+from reportlab.platypus import SimpleDocTemplate, Spacer, Paragraph, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import inch
 from reportlab.lib import colors
-from reportlab.platypus import Table, TableStyle
 from .base_processor import BaseProcessor
+from .pdf_template import PDFTemplate
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -40,12 +41,18 @@ class JewishHomeProcessor(BaseProcessor):
         for idx, row in df.iterrows():
             try:
                 logger.debug(f"Processing Jewish Home row {idx}: {row.to_dict()}")
+                
+                # Use exact column names
                 item = row['item']
                 date_of_service = row['date of service']
                 confirmation_no = row['confirmation no']
                 patient_name = row['name of patient']
                 from_address = row['from']
                 to_address = row['to']
+                
+                # Validate required fields
+                if not all([patient_name, from_address, to_address]):
+                    raise ValueError(f"Missing required fields: patient_name={patient_name}, from={from_address}, to={to_address}")
                 
                 # Calculate distance
                 distance = self._calculate_distance(from_address, to_address)
@@ -113,33 +120,56 @@ class JewishHomeProcessor(BaseProcessor):
         }
     
     def _generate_jewishhome_pdf(self, rows, grand_total, invoice_number):
-        """Generate Jewish Home consolidated PDF"""
+        """Generate Jewish Home consolidated PDF using template"""
         try:
-            import os
             filename = f"{invoice_number}.pdf"
             filepath = os.path.join(self.output_folder, filename)
             
-            doc = SimpleDocTemplate(filepath, pagesize=letter, topMargin=0.5*inch, bottomMargin=0.5*inch)
+            doc = SimpleDocTemplate(filepath, pagesize=letter,
+                                topMargin=0*inch,
+                                bottomMargin=0*inch,
+                                leftMargin=0*inch,
+                                rightMargin=0*inch)
             story = []
-            styles = getSampleStyleSheet()
+            styles = PDFTemplate.get_styles()
             
-            # Company header
-            story = self._create_header(story, styles)
+            # Header
+            header_left = Paragraph(f'<font size=24><b>INVOICE</b></font>', styles['title'])
+            header_right = Paragraph(
+                f'<b>{PDFTemplate.COMPANY_NAME}</b><br/>'
+                f'{PDFTemplate.COMPANY_ADDRESS}<br/>'
+                f'{PDFTemplate.COMPANY_CITY_STATE}<br/>'
+                f'{PDFTemplate.COMPANY_PHONE}<br/>'
+                f'<u>{PDFTemplate.COMPANY_EMAIL}</u><br/>'
+                f'<u>{PDFTemplate.COMPANY_WEBSITE}</u>',
+                styles['header_text']
+            )
+            story.append(PDFTemplate.create_header(header_left, header_right))
             
             # Invoice details
             invoice_date, due_date = self._get_invoice_date_strings()
             
-            details_data = [
-                ['Invoice Number:', invoice_number, 'Invoice Date:', invoice_date],
-                ['', '', 'Due Date:', due_date],
-            ]
+            details_left = Paragraph(
+                f'<b>Invoice No.</b> {invoice_number}<br/>'
+                f'<b>Date of Issue</b> {invoice_date}<br/>'
+                f'<b>Due Date</b> {due_date}',
+                styles['normal']
+            )
             
-            story.append(self._create_details_table(details_data))
-            story.append(Spacer(1, 0.3*inch))
+            details_right = Paragraph(
+                f'<b>Bill To</b><br/>'
+                f'Jewish Home & Hospital<br/>'
+                f'For the Aged<br/>',
+                styles['normal']
+            )
+            
+            details_data = [[details_left, details_right]]
+            story.append(PDFTemplate.create_details_section(details_data, [2*inch, 5*inch]))
+            story.append(Spacer(1, 0.2*inch))
             
             # Billing details table
             table_data = [
-                ['Item', 'Date', 'Conf#', 'Patient', 'From', 'To', 'Miles', 'Legs', 'Amount']
+                ['Item', 'Date', 'Conf#', 'Patient Name', 'From', 'To', 'Miles', 'Legs', 'Amount']
             ]
             
             successful_rows = [r for r in rows if r.get('status') == 'SUCCESS']
@@ -151,30 +181,28 @@ class JewishHomeProcessor(BaseProcessor):
                     str(row.get('item', '')),
                     date_str,
                     str(row.get('confirmation_no', ''))[:10],
-                    str(row.get('name_of_patient', ''))[:12],
-                    str(row.get('from', ''))[:12],
-                    str(row.get('to', ''))[:12],
+                    str(row.get('name_of_patient', ''))[:15],
+                    str(row.get('from', ''))[:10],
+                    str(row.get('to', ''))[:10],
                     str(row.get('total_miles', '')),
                     str(row.get('legs', '')),
                     f"${row.get('amount', '')}"
                 ])
             
-            # Add grand total row
-            table_data.append(['', '', '', '', '', '', '', 'TOTAL:', f'${grand_total:.2f}'])
-            
-            # Better column widths for readability
-            col_widths = [0.5*inch, 0.75*inch, 0.8*inch, 1*inch, 
-                         1*inch, 1*inch, 0.6*inch, 0.5*inch, 0.8*inch]
+            # Column widths for 7-inch total width
+            col_widths = [0.4*inch, 0.7*inch, 0.7*inch, 1.3*inch, 0.95*inch, 0.95*inch, 0.65*inch, 0.55*inch, 0.75*inch]
             
             billing_table = Table(table_data, colWidths=col_widths)
             billing_table.setStyle(TableStyle([
-                ('FONT', (0, 0), (-1, 0), 'Helvetica-Bold', 9),
-                ('FONT', (0, 1), (-1, -2), 'Helvetica', 8),
-                ('FONT', (0, -1), (-1, -1), 'Helvetica-Bold', 9),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 9),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica', 8),
                 ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#cccccc')),
-                ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#dddddd')),
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('ALIGN', (3, 0), (5, -1), 'LEFT'),
                 ('ALIGN', (6, 0), (-1, -1), 'RIGHT'),
                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                 ('LEFTPADDING', (0, 0), (-1, -1), 5),
@@ -183,10 +211,22 @@ class JewishHomeProcessor(BaseProcessor):
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
             ]))
             story.append(billing_table)
+            story.append(Spacer(1, 0.2*inch))
+            
+            # Totals section outside table
+            totals_data = [
+                ['', '', '', '', '', '', '', 'Subtotal', f'${grand_total:.2f}'],
+                ['', '', '', '', '', '', '', 'Total', f'${grand_total:.2f}']
+            ]
+            story.append(PDFTemplate.create_totals_table(totals_data, col_widths))
+            story.append(Spacer(1, 0.5*inch))
+            
+            # Footer
+            story.append(PDFTemplate.create_footer('<b>Thank you for your business!</b>'))
             
             doc.build(story)
             logger.info(f"Generated Jewish Home PDF: {filepath}")
-        
+    
         except Exception as e:
             logger.error(f"Error generating Jewish Home PDF for {invoice_number}: {str(e)}", exc_info=True)
             raise

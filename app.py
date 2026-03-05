@@ -88,8 +88,7 @@ def process():
         
         try:
             if mode == 'JEWISHHOME':
-                processor.process_excel(upload_path, invoice_number)
-                results = processor._process_jewishhome(pd.read_excel(upload_path), invoice_number)
+                results = processor.process_excel(upload_path, invoice_number)
             elif mode == 'NJVETERANS':
                 results = processor.process_excel(upload_path, invoice_number)
             else:
