@@ -209,16 +209,16 @@ class UHCProcessor(BaseProcessor):
                 billing_data = [
                     ['Description', 'Quantity', 'Rate', 'Calculation', 'Amount'],
                     ['Base Rate (A Leg)', '1', f'${UHC_BASE_RATE}.00', f'1×${UHC_BASE_RATE}', f'${UHC_BASE_RATE:.2f}'],
-                    ['Mileage (A Leg)', f'{distance_to} miles', f'${UHC_MILEAGE_RATE}.00/mi', f'{distance_to}×${UHC_MILEAGE_RATE}', f'${distance_to * UHC_MILEAGE_RATE:.2f}'],
+                    ['Mileage (A Leg)', f'{distance_from} miles', f'${UHC_MILEAGE_RATE}.00/mi', f'{distance_from}×${UHC_MILEAGE_RATE}', f'${distance_from * UHC_MILEAGE_RATE:.2f}'],
                     ['Base Rate (B Leg)', '1', f'${UHC_BASE_RATE}.00', f'1×${UHC_BASE_RATE}', f'${UHC_BASE_RATE:.2f}'],
-                    ['Mileage (B Leg)', f'{distance_from} miles', f'${UHC_MILEAGE_RATE}.00/mi', f'{distance_from}×${UHC_MILEAGE_RATE}', f'${distance_from * UHC_MILEAGE_RATE:.2f}'],
+                    ['Mileage (B Leg)', f'{distance_to} miles', f'${UHC_MILEAGE_RATE}.00/mi', f'{distance_to}×${UHC_MILEAGE_RATE}', f'${distance_to * UHC_MILEAGE_RATE:.2f}'],
                     ['', '', '', 'TOTAL', f'${amount:.2f}'],
                 ]
             else:
                 billing_data = [
                     ['Description', 'Quantity', 'Rate', 'Calculation', 'Amount'],
                     ['Base Rate (A Leg)', '1', f'${UHC_BASE_RATE}.00', f'1×${UHC_BASE_RATE}', f'${UHC_BASE_RATE:.2f}'],
-                    ['Mileage (A Leg)', f'{distance_to} miles', f'${UHC_MILEAGE_RATE}.00/mi', f'{distance_to}×${UHC_MILEAGE_RATE}', f'${distance_to * UHC_MILEAGE_RATE:.2f}'],
+                    ['Mileage (A Leg)', f'{distance_from} miles', f'${UHC_MILEAGE_RATE}.00/mi', f'{distance_from}×${UHC_MILEAGE_RATE}', f'${distance_from * UHC_MILEAGE_RATE:.2f}'],
                     ['', '', '', 'TOTAL', f'${amount:.2f}'],
                 ]
             

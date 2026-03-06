@@ -76,7 +76,7 @@ class NJVeteransProcessor(BaseProcessor):
                 date_of_service = row['date of service']
                 facility_name = row['facility name']
                 destination_address = row['destination address']
-                service_type = row['roundtrip or one-way'].lower()
+                service_type = row['type of service'].lower()
                 hours = float(row['number of hours'])
                 
                 if hours <= 0:
@@ -85,7 +85,7 @@ class NJVeteransProcessor(BaseProcessor):
                 amount = hours * NJVETERANS_HOURLY_RATE
                 
                 # Check if exceeds max
-                if current_amount + amount > NJVETERANS_MAX_INVOICE and current_items:
+                if current_amount + amount >= NJVETERANS_MAX_INVOICE and current_items:
                     self._generate_njveterans_pdf(current_invoice, current_items, current_amount)
                     invoices_generated += 1
                     
@@ -209,7 +209,7 @@ class NJVeteransProcessor(BaseProcessor):
             # Line items
             items_data = [[
                 'Item', 'Name of the Patient', 'Date of Service', 'Trip Type',
-                'Comments', 'Hours', 'Rate/Hr (USD)', 'Amount'
+                'Hours', 'Rate/Hr (USD)', 'Amount'
             ]]
 
             for item in items:
@@ -218,22 +218,21 @@ class NJVeteransProcessor(BaseProcessor):
                     item['patient_name'],
                     item['date_of_service'],
                     item['trip_type'],
-                    '',
                     f"{item['hours']:.2f}",
                     f"${item['rate']:.2f}",
                     f"${item['amount']:.2f}"
                 ])
 
-            items_data.append(['', '', '', '', '', '', '', ''])
+            items_data.append(['', '', '', '', '', '', ''])
 
-            col_widths = [0.4*inch, 1.3*inch, 0.95*inch, 1.1*inch, 0.9*inch, 0.65*inch, 1*inch, 0.75*inch]
+            col_widths = [0.4*inch, 1.3*inch, 0.95*inch, 1.1*inch, 0.9*inch, 1*inch, 1*inch]
             story.append(PDFTemplate.create_line_items_table(items_data, col_widths))
             story.append(Spacer(1, 0.2*inch))
 
             # Totals
             totals_data = [
-                ['', '', '', '', '', '', 'Subtotal', f'${total_amount:.2f}'],
-                ['', '', '', '', '', '', 'Total', f'${total_amount:.2f}']
+                ['', '', '', '', '', 'Subtotal', f'${total_amount:.2f}'],
+                ['', '', '', '', '', 'Total', f'${total_amount:.2f}']
             ]
             story.append(PDFTemplate.create_totals_table(totals_data, col_widths))
             story.append(Spacer(1, 0.3*inch))

@@ -13,7 +13,7 @@ COMPANY_INFO = {
 FACILITIES = {
     'New Vista Nursing and Rehabilitation Center': '300 Broadway, Newark, NJ 07104',
     'Jewish Home Family': '10 Link Drive, Rockleigh, NJ 07647',
-    'Peace Care at St Joseph\'s (Jersey City)': '537 Pavonia Avenue, Jersey City, NJ 07306',
+    'Peace Care at St Joseph\'s': '537 Pavonia Avenue, Jersey City, NJ 07306',
     'Emerson Health and Rehabilitation Center': '100 Kinderkamack Rd, Emerson, NJ 07630',
     'Peace Care St Ann\'s': '198 Old Bergen Rd, Jersey City, NJ 07305',
     'Optima Care Castle Hill': '615 23rd Street, Union City, NJ 07087',
