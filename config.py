@@ -54,7 +54,7 @@ BILLING_MODES = {
     }
 }
 
-GOOGLE_MAPS_API_KEY = "AIzaSyBwEBeUpHxjqsRcEH4e0RYqn9La__eCO-M"
+GOOGLE_MAPS_API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY", "")
 
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
 OUTPUT_FOLDER = os.path.join(BASE_DIR, 'outputs')
