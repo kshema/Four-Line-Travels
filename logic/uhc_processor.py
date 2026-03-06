@@ -46,7 +46,7 @@ class UHCProcessor(BaseProcessor):
                 service_type = row['type of service'].lower()
                 date_of_service = row['date of service']
                 facility_name = row['facility name']
-                patient_address = row['destination address']
+                destination_address = row['destination address']
                 
                 # Validate facility
                 if facility_name not in FACILITIES:
@@ -54,20 +54,21 @@ class UHCProcessor(BaseProcessor):
                 
                 facility_address = FACILITIES[facility_name]
                 
-                # Calculate distance
-                distance_to = self._calculate_distance(patient_address, facility_address)
-                distance_to_rounded = self._round_distance(distance_to)
+                # Mileage A: Facility to Destination
+                mileage_a = self._calculate_distance(facility_address, destination_address)
+                mileage_a_rounded = self._round_distance(mileage_a)
                 
                 # Calculate cost
                 if service_type == 'one way':
-                    distance = distance_to_rounded
+                    distance = mileage_a_rounded
                     amount = UHC_BASE_RATE + (distance * UHC_MILEAGE_RATE)
                     legs = 1
-                    distance_from_rounded = 0
+                    mileage_b_rounded = 0
                 else:  # round trip
-                    distance_from = self._calculate_distance(facility_address, patient_address)
-                    distance_from_rounded = self._round_distance(distance_from)
-                    distance = distance_to_rounded + distance_from_rounded
+                    # Mileage B: Destination to Facility
+                    mileage_b = self._calculate_distance(destination_address, facility_address)
+                    mileage_b_rounded = self._round_distance(mileage_b)
+                    distance = mileage_a_rounded + mileage_b_rounded
                     amount = (UHC_BASE_RATE * 2) + (distance * UHC_MILEAGE_RATE)
                     legs = 2
                 
@@ -76,8 +77,8 @@ class UHCProcessor(BaseProcessor):
                 
                 # Generate PDF
                 self._generate_uhc_pdf(invoice_number, patient_name, member_id, 
-                                       date_of_service, facility_name, patient_address,
-                                       service_type, distance_to_rounded, distance_from_rounded, 
+                                       date_of_service, facility_name, destination_address,
+                                       service_type, mileage_a_rounded, mileage_b_rounded, 
                                        amount, legs)
                 
                 processed_rows.append({
@@ -87,7 +88,7 @@ class UHCProcessor(BaseProcessor):
                     'type of service': service_type,
                     'date_of_service': str(date_of_service),
                     'facility_name': facility_name,
-                    'patient_address': patient_address,
+                    'destination_address': destination_address,
                     'distance': round(distance, 1),
                     'amount': round(amount, 2),
                     'status': 'SUCCESS',
@@ -106,7 +107,7 @@ class UHCProcessor(BaseProcessor):
                     'type of service': row.get('type of service', ''),
                     'date_of_service': str(row.get('date of service', '')),
                     'facility_name': row.get('facility name', ''),
-                    'patient_address': row.get('destination address', ''),
+                    'destination_address': row.get('destination address', ''),
                     'distance': '',
                     'amount': '',
                     'status': 'FAILED',
@@ -129,8 +130,8 @@ class UHCProcessor(BaseProcessor):
         }
     
     def _generate_uhc_pdf(self, invoice_number, patient_name, member_id, 
-                         date_of_service, facility_name, patient_address,
-                         service_type, distance_to, distance_from, amount, legs):
+                         date_of_service, facility_name, destination_address,
+                         service_type, mileage_a, mileage_b, amount, legs):
         """Generate UHC invoice PDF using template"""
         try:
             filename = f"{invoice_number}.pdf"
@@ -184,7 +185,7 @@ class UHCProcessor(BaseProcessor):
                 ['Date of Service:', str(date_of_service).split()[0]],
                 ['Facility:', facility_name],
                 ['Facility Address:', FACILITIES.get(facility_name, 'N/A')],
-                ['Destination Address:', patient_address],
+                ['Destination Address:', destination_address],
                 ['Service Type:', service_type.upper()],
             ]
             
@@ -209,16 +210,16 @@ class UHCProcessor(BaseProcessor):
                 billing_data = [
                     ['Description', 'Quantity', 'Rate', 'Calculation', 'Amount'],
                     ['Base Rate (A Leg)', '1', f'${UHC_BASE_RATE}.00', f'1×${UHC_BASE_RATE}', f'${UHC_BASE_RATE:.2f}'],
-                    ['Mileage (A Leg)', f'{distance_from} miles', f'${UHC_MILEAGE_RATE}.00/mi', f'{distance_from}×${UHC_MILEAGE_RATE}', f'${distance_from * UHC_MILEAGE_RATE:.2f}'],
+                    ['Mileage A ', f'{mileage_a} miles', f'${UHC_MILEAGE_RATE}.00/mi', f'{mileage_a}×${UHC_MILEAGE_RATE}', f'${mileage_a * UHC_MILEAGE_RATE:.2f}'],
                     ['Base Rate (B Leg)', '1', f'${UHC_BASE_RATE}.00', f'1×${UHC_BASE_RATE}', f'${UHC_BASE_RATE:.2f}'],
-                    ['Mileage (B Leg)', f'{distance_to} miles', f'${UHC_MILEAGE_RATE}.00/mi', f'{distance_to}×${UHC_MILEAGE_RATE}', f'${distance_to * UHC_MILEAGE_RATE:.2f}'],
+                    ['Mileage B', f'{mileage_b} miles', f'${UHC_MILEAGE_RATE}.00/mi', f'{mileage_b}×${UHC_MILEAGE_RATE}', f'${mileage_b * UHC_MILEAGE_RATE:.2f}'],
                     ['', '', '', 'TOTAL', f'${amount:.2f}'],
                 ]
             else:
                 billing_data = [
                     ['Description', 'Quantity', 'Rate', 'Calculation', 'Amount'],
                     ['Base Rate (A Leg)', '1', f'${UHC_BASE_RATE}.00', f'1×${UHC_BASE_RATE}', f'${UHC_BASE_RATE:.2f}'],
-                    ['Mileage (A Leg)', f'{distance_from} miles', f'${UHC_MILEAGE_RATE}.00/mi', f'{distance_from}×${UHC_MILEAGE_RATE}', f'${distance_from * UHC_MILEAGE_RATE:.2f}'],
+                    ['Mileage A', f'{mileage_a} miles', f'${UHC_MILEAGE_RATE}.00/mi', f'{mileage_a}×${UHC_MILEAGE_RATE}', f'${mileage_a * UHC_MILEAGE_RATE:.2f}'],
                     ['', '', '', 'TOTAL', f'${amount:.2f}'],
                 ]
             

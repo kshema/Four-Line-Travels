@@ -29,16 +29,16 @@ class BaseProcessor:
         self.gmaps = googlemaps.Client(key=GOOGLE_MAPS_API_KEY)
     
     def _calculate_distance(self, address1, address2):
-        """Calculate distance between two addresses using Google Maps API"""
+        """Calculate distance between two addresses using Google Maps API (in miles)"""
         try:
-            result = self.gmaps.distance_matrix(address1, address2)
+            result = self.gmaps.distance_matrix(address1, address2, units="imperial")
             
             # Check for valid response
             if result['rows'][0]['elements'][0].get('status') == 'ZERO_RESULTS':
                 raise ValueError(f"Cannot find route from {address1} to {address2}")
             
-            distance_meters = result['rows'][0]['elements'][0]['distance']['value']
-            distance_miles = distance_meters / 1609.34
+            distance_text = result['rows'][0]['elements'][0]['distance']['text']
+            distance_miles = float(distance_text.replace(' mi', '').replace(',', ''))
             return round(distance_miles, 1)
         except Exception as e:
             logger.warning(f"Distance calculation failed for {address1} to {address2}: {str(e)}")

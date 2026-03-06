@@ -22,7 +22,7 @@ class PDFTemplate:
     COMPANY_ADDRESS = "645 Stelton St"
     COMPANY_CITY_STATE = "Teaneck, NJ, 07666"
     COMPANY_PHONE = "Phone 551-313-8500"
-    COMPANY_EMAIL = "fourlinetravels@gmail.com"
+    COMPANY_EMAIL = "info@fourlinetravels.com"
     COMPANY_WEBSITE = "www.fourlinetravels.com"
     
     # Default margins
