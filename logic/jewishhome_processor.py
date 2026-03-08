@@ -200,6 +200,14 @@ class JewishHomeProcessor(BaseProcessor):
             story.append(details_table)
             story.append(Spacer(1, 0.15*inch))
 
+            # Rate info above table
+            rate_info = Paragraph(
+                f'<font size=9><b>Rate/Mile</b> = ${JEWISHHOME_MILEAGE_RATE} &nbsp;&nbsp; <b>Rate/Leg</b> = ${JEWISHHOME_BASE_RATE}</font>',
+                styles['Normal']
+            )
+            story.append(rate_info)
+            story.append(Spacer(1, 0.1*inch))
+
             # Billing details table with wrapped text
             table_data = [
                 ['Item', 'Date', 'Conf#', 'Patient Name', 'From Address', 'To Address', 'Miles', 'Legs', 'Amount']
@@ -268,6 +276,29 @@ class JewishHomeProcessor(BaseProcessor):
             ]))
             story.append(totals_table)
             story.append(Spacer(1, 0.3*inch))
+
+            # Payment details
+            payment_left = Paragraph(
+                f'<b>Payment Details</b><br/><br/>'
+                f'<b>Bank Name</b><br/>'
+                f'<b>Company Name</b><br/>'
+                f'<b>Account number</b><br/>'
+                f'<b>Routing number</b>',
+                styles['Normal']
+            )
+
+            payment_right = Paragraph(
+                f'<br/><br/>'
+                f'Chase Bank<br/>'
+                f'Fourline Travels LLC<br/>'
+                f'591661668<br/>'
+                f'021202337',
+                styles['Normal']
+            )
+
+            payment_data = [[payment_left, payment_right]]
+            story.append(PDFTemplate.create_payment_section(payment_data))
+            story.append(Spacer(1, 0.5*inch))
 
             # Footer - full width with background color - match UHC style
             footer_data = [['Thank you for your business!']]
