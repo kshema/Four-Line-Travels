@@ -2,7 +2,7 @@ import logging
 import pandas as pd
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Spacer, Paragraph, Table, TableStyle
-from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch
 from reportlab.lib import colors
 from .base_processor import BaseProcessor
@@ -146,103 +146,124 @@ class UHCProcessor(BaseProcessor):
             styles = PDFTemplate.get_styles()
             
             # Header
-            header_left = Paragraph(f'<font size=24><b>INVOICE</b></font>', styles['title'])
-            header_right = Paragraph(
-                f'<b>{PDFTemplate.COMPANY_NAME}</b><br/>'
-                f'{PDFTemplate.COMPANY_ADDRESS}<br/>'
-                f'{PDFTemplate.COMPANY_CITY_STATE}<br/>'
-                f'{PDFTemplate.COMPANY_PHONE}<br/>'
-                f'<u>{PDFTemplate.COMPANY_EMAIL}</u><br/>'
-                f'<u>{PDFTemplate.COMPANY_WEBSITE}</u>',
-                styles['header_text']
-            )
-            story.append(PDFTemplate.create_header(header_left, header_right))
+            PDFTemplate.build_header(story)
             
             # Invoice details
             invoice_date, due_date = self._get_invoice_date_strings()
+            bill_to = 'UnitedHealthcare Insurance Company'
+            PDFTemplate.build_invoice_details(story, invoice_number, invoice_date, due_date, bill_to)
             
-            details_left = Paragraph(
-                f'<b>Invoice No.</b> {invoice_number}<br/>'
-                f'<b>Date of Issue</b> {invoice_date}<br/>'
-                f'<b>Due Date</b> {due_date}',
-                styles['normal']
-            )
-            
-            details_right = Paragraph(
-                f'<b>Bill To</b><br/>'
-                f'United Health Care<br/>'
-                f'Member ID: {member_id}<br/>',
-                styles['normal']
-            )
-            
-            details_data = [[details_left, details_right]]
-            story.append(PDFTemplate.create_details_section(details_data, [2*inch, 5*inch]))
-            story.append(Spacer(1, 0.2*inch))
-            
-            # Patient and service info section
+            # Patient info section
+            facility_address = FACILITIES.get(facility_name, 'N/A')
             info_data = [
-                ['Patient Name:', patient_name],
-                ['Date of Service:', str(date_of_service).split()[0]],
-                ['Facility:', facility_name],
-                ['Facility Address:', FACILITIES.get(facility_name, 'N/A')],
-                ['Destination Address:', destination_address],
-                ['Service Type:', service_type.upper()],
+                ['Patient Name', '', patient_name],
+                ['Member ID', '', member_id],
+                ['Date of Service', '', str(date_of_service).split()[0]],
+                ['Type of Service', '', service_type.title()],
             ]
             
-            info_table = Table(info_data, colWidths=[2*inch, 5*inch])
+            info_table = Table(info_data, colWidths=[1.5*inch, 0.5*inch, 5*inch])
             info_table.setStyle(TableStyle([
                 ('ALIGN', (0, 0), (0, -1), 'LEFT'),
-                ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+                ('ALIGN', (2, 0), (2, -1), 'LEFT'),
                 ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                ('LEFTPADDING', (0, 0), (0, 0), 15),
-                ('LEFTPADDING', (1, 0), (1, 0), 15),
-                ('RIGHTPADDING', (1, 0), (1, 0), 15),
-                ('TOPPADDING', (0, 0), (-1, -1), 10),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+                ('LEFTPADDING', (0, 0), (0, -1), 15),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
                 ('FONTSIZE', (0, 0), (-1, -1), 10),
                 ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
             ]))
             story.append(info_table)
             story.append(Spacer(1, 0.2*inch))
             
-            # Billing summary
-            if service_type.lower() == 'round trip':
+            # Billing table - Item | Description | Type | Unit | Code | Rate (USD) | Amount
+            base_styles = getSampleStyleSheet()
+            desc_style = ParagraphStyle(
+                'wrapped_desc',
+                parent=base_styles['Normal'],
+                fontSize=8,
+                leading=9,
+                alignment=0
+            )
+            base_code = 'A0130'
+            mileage_code = 'S0209'
+            
+            if service_type.lower() in ['round trip', 'roundtrip', 'wheelchair roundtrip']:
                 billing_data = [
-                    ['Description', 'Quantity', 'Rate', 'Calculation', 'Amount'],
-                    ['Base Rate (A Leg)', '1', f'${UHC_BASE_RATE}.00', f'1×${UHC_BASE_RATE}', f'${UHC_BASE_RATE:.2f}'],
-                    ['Mileage A ', f'{mileage_a} miles', f'${UHC_MILEAGE_RATE}.00/mi', f'{mileage_a}×${UHC_MILEAGE_RATE}', f'${mileage_a * UHC_MILEAGE_RATE:.2f}'],
-                    ['Base Rate (B Leg)', '1', f'${UHC_BASE_RATE}.00', f'1×${UHC_BASE_RATE}', f'${UHC_BASE_RATE:.2f}'],
-                    ['Mileage B', f'{mileage_b} miles', f'${UHC_MILEAGE_RATE}.00/mi', f'{mileage_b}×${UHC_MILEAGE_RATE}', f'${mileage_b * UHC_MILEAGE_RATE:.2f}'],
-                    ['', '', '', 'TOTAL', f'${amount:.2f}'],
+                    ['Item', 'Description', 'Type', 'Unit', 'Code', 'Rate (USD)', 'Amount'],
+                    ['1', Paragraph('Non-Emergent Transportation Wheelchair Van', desc_style), 'A leg', '1', base_code, f'${UHC_BASE_RATE:.2f}', f'${UHC_BASE_RATE:.2f}'],
+                    ['2', Paragraph('Non-Emergent Transportation Mileage', desc_style), 'A leg', f'{mileage_a}', mileage_code, f'${UHC_MILEAGE_RATE:.2f}', f'${mileage_a * UHC_MILEAGE_RATE:.2f}'],
+                    ['3', Paragraph('Non-Emergent Transportation Wheelchair Van', desc_style), 'B Leg', '1', base_code, f'${UHC_BASE_RATE:.2f}', f'${UHC_BASE_RATE:.2f}'],
+                    ['4', Paragraph('Non-Emergent Transportation Mileage', desc_style), 'B Leg', f'{mileage_b}', mileage_code, f'${UHC_MILEAGE_RATE:.2f}', f'${mileage_b * UHC_MILEAGE_RATE:.2f}'],
+                    ['', '', '', '', '', '', ''],
                 ]
             else:
                 billing_data = [
-                    ['Description', 'Quantity', 'Rate', 'Calculation', 'Amount'],
-                    ['Base Rate (A Leg)', '1', f'${UHC_BASE_RATE}.00', f'1×${UHC_BASE_RATE}', f'${UHC_BASE_RATE:.2f}'],
-                    ['Mileage A', f'{mileage_a} miles', f'${UHC_MILEAGE_RATE}.00/mi', f'{mileage_a}×${UHC_MILEAGE_RATE}', f'${mileage_a * UHC_MILEAGE_RATE:.2f}'],
-                    ['', '', '', 'TOTAL', f'${amount:.2f}'],
+                    ['Item', 'Description', 'Type', 'Unit', 'Code', 'Rate (USD)', 'Amount'],
+                    ['1', Paragraph('Non-Emergent Transportation Wheelchair Van', desc_style), 'A leg', '1', base_code, f'${UHC_BASE_RATE:.2f}', f'${UHC_BASE_RATE:.2f}'],
+                    ['2', Paragraph('Non-Emergent Transportation Mileage', desc_style), 'A leg', f'{mileage_a}', mileage_code, f'${UHC_MILEAGE_RATE:.2f}', f'${mileage_a * UHC_MILEAGE_RATE:.2f}'],
+                    ['', '', '', '', '', '', ''],
                 ]
             
-            col_widths = [2*inch, 1.2*inch, 1.2*inch, 1.3*inch, 1.3*inch]
+            col_widths = [0.4*inch, 2.5*inch, 0.7*inch, 0.5*inch, 0.7*inch, 1*inch, 1*inch]
             billing_table = Table(billing_data, colWidths=col_widths)
             billing_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                 ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+                ('ALIGN', (1, 1), (1, -1), 'LEFT'),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 10),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                ('GRID', (0, 0), (-1, -2), 1, colors.black),
-                ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.white, colors.white]),
-                ('LEFTPADDING', (0, 0), (-1, -1), 8),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                ('FONTSIZE', (0, 0), (-1, 0), 9),
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), 9),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+                ('TOPPADDING', (0, 0), (-1, 0), 10),
+                ('GRID', (0, 0), (-1, -2), 0.5, colors.black),
+                ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                ('TOPPADDING', (0, 1), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
             ]))
             story.append(billing_table)
-            story.append(Spacer(1, 0.5*inch))
+            story.append(Spacer(1, 0.15*inch))
+            
+            # Place of Service section
+            place_data = [
+                [
+                    Paragraph('<b>Place of Service</b>', styles['normal']),
+                    Paragraph(f'{facility_name}, {facility_address}', styles['normal']),
+                    Paragraph('<font color="#2B5F7F">\u2194</font>', styles['normal']),
+                    Paragraph(f'{destination_address}', styles['normal']),
+                ]
+            ]
+            place_table = Table(place_data, colWidths=[1.2*inch, 3*inch, 0.4*inch, 2.2*inch])
+            place_table.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('ALIGN', (2, 0), (2, 0), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('LEFTPADDING', (0, 0), (0, 0), 15),
+                ('TOPPADDING', (0, 0), (-1, -1), 8),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                ('LINEABOVE', (0, 0), (-1, 0), 0.5, colors.black),
+                ('LINEBELOW', (0, 0), (-1, 0), 0.5, colors.black),
+            ]))
+            story.append(place_table)
+            story.append(Spacer(1, 0.2*inch))
+
+            # Totals
+            totals_data = [
+                ['', '', '', '', '', 'Subtotal', f'${amount:.2f}'],
+                ['', '', '', '', '', 'Total', f'${amount:.2f}']
+            ]
+            story.append(PDFTemplate.create_totals_table(totals_data, col_widths, subtotal_col=5, total_col=6))
+            story.append(Spacer(1, 0.3*inch))
+
+            # Payment details
+            PDFTemplate.build_payment_section(story)
             
             # Footer
-            story.append(PDFTemplate.create_footer('<b>Thank you for your business!</b>'))
+            PDFTemplate.build_footer(story)
             
             doc.build(story)
             logger.info(f"Generated UHC PDF: {filepath}")

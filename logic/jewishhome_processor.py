@@ -2,7 +2,7 @@ import logging
 import pandas as pd
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Spacer, Paragraph, Table, TableStyle
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch
 from reportlab.lib import colors
 from .base_processor import BaseProcessor
@@ -132,78 +132,33 @@ class JewishHomeProcessor(BaseProcessor):
                                 leftMargin=0.4*inch,
                                 rightMargin=0.4*inch)
             story = []
-            styles = getSampleStyleSheet()
+            styles = PDFTemplate.get_styles()
             
             # Create custom style for wrapped addresses with smaller font
+            base_styles = getSampleStyleSheet()
             address_style = ParagraphStyle(
                 'wrapped_address',
-                parent=styles['Normal'],
+                parent=base_styles['Normal'],
                 fontSize=7,
                 leading=8,
                 alignment=0
             )
             
-            # Header with background color - match UHC style
-            header_left = Paragraph(f'<font size=14 color=white><b>INVOICE</b></font>', styles['Heading1'])
-            header_right = Paragraph(
-                f'<font size=10 color=white><b>{PDFTemplate.COMPANY_NAME}</b><br/>'
-                f'{PDFTemplate.COMPANY_ADDRESS}<br/>'
-                f'{PDFTemplate.COMPANY_CITY_STATE}<br/>'
-                f'{PDFTemplate.COMPANY_PHONE}<br/>'
-                f'<u>{PDFTemplate.COMPANY_EMAIL}</u></font>',
-                styles['Normal']
-            )
-
-            # Create header table that spans full width with color
-            header_data = [[header_left, header_right]]
-            header_table = Table(header_data, colWidths=[4*inch, 6*inch])
-            header_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#2B5F7F')),
-                ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-                ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
-                ('TEXTCOLOR', (0, 0), (-1, -1), colors.white),
-                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-                ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
-                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                ('LEFTPADDING', (0, 0), (-1, -1), 12),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 12),
-                ('TOPPADDING', (0, 0), (-1, -1), 10),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-            ]))
-            story.append(header_table)
-            story.append(Spacer(1, 0.15*inch))
+            # Header (landscape widths)
+            PDFTemplate.build_header(story, col_widths=[4*inch, 6*inch])
 
             # Invoice details
             invoice_date, due_date = self._get_invoice_date_strings()
-
-            details_left = Paragraph(
-                f'<font size=8><b>Invoice No.</b> {invoice_number}<br/>'
-                f'<b>Date of Issue</b> {invoice_date}<br/>'
-                f'<b>Due Date</b> {due_date}</font>',
-                styles['Normal']
-            )
-
-            details_right = Paragraph(
-                f'<font size=8><b>Bill To</b><br/>'
+            bill_to = (
                 f'Jewish Home Family<br/>'
-                f'10 Link Dr Rockleigh NJ 07647</font>',
-                styles['Normal']
+                f'10 Link Dr Rockleigh NJ 07647'
             )
-
-            details_data = [[details_left, details_right]]
-            details_table = Table(details_data, colWidths=[4*inch, 6*inch])
-            details_table.setStyle(TableStyle([
-                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                ('LEFTPADDING', (0, 0), (-1, -1), 0),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-            ]))
-            story.append(details_table)
-            story.append(Spacer(1, 0.15*inch))
+            PDFTemplate.build_invoice_details(story, invoice_number, invoice_date, due_date, bill_to, col_widths=[4*inch, 6*inch])
 
             # Rate info above table
             rate_info = Paragraph(
                 f'<font size=9><b>Rate/Mile</b> = ${JEWISHHOME_MILEAGE_RATE} &nbsp;&nbsp; <b>Rate/Leg</b> = ${JEWISHHOME_BASE_RATE}</font>',
-                styles['Normal']
+                styles['normal']
             )
             story.append(rate_info)
             story.append(Spacer(1, 0.1*inch))
@@ -263,56 +218,19 @@ class JewishHomeProcessor(BaseProcessor):
             story.append(billing_table)
             story.append(Spacer(1, 0.15*inch))
 
-            # Totals section - full width
-            totals_data = [['', '', '', '', '', '', '', 'Subtotal', f'${grand_total:.2f}'],
-                        ['', '', '', '', '', '', '', 'Total Due', f'${grand_total:.2f}']]
-            totals_table = Table(totals_data, colWidths=col_widths)
-            totals_table.setStyle(TableStyle([
-                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, -1), 8),
-                ('ALIGN', (-2, 0), (-1, -1), 'RIGHT'),
-                ('TOPPADDING', (0, 0), (-1, -1), 4),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-            ]))
-            story.append(totals_table)
-            story.append(Spacer(1, 0.3*inch))
+            # Totals section
+            totals_data = [
+                ['', '', '', '', '', '', '', 'Subtotal', f'${grand_total:.2f}'],
+                ['', '', '', '', '', '', '', 'Total', f'${grand_total:.2f}']
+            ]
+            story.append(PDFTemplate.create_totals_table(totals_data, col_widths, subtotal_col=6, total_col=8))
+            story.append(Spacer(1, 0.15*inch))
 
             # Payment details
-            payment_left = Paragraph(
-                f'<b>Payment Details</b><br/><br/>'
-                f'<b>Bank Name</b><br/>'
-                f'<b>Company Name</b><br/>'
-                f'<b>Account number</b><br/>'
-                f'<b>Routing number</b>',
-                styles['Normal']
-            )
+            PDFTemplate.build_payment_section(story, col_widths=[2*inch, 8.2*inch])
 
-            payment_right = Paragraph(
-                f'<br/><br/>'
-                f'Chase Bank<br/>'
-                f'Fourline Travels LLC<br/>'
-                f'591661668<br/>'
-                f'021202337',
-                styles['Normal']
-            )
-
-            payment_data = [[payment_left, payment_right]]
-            story.append(PDFTemplate.create_payment_section(payment_data))
-            story.append(Spacer(1, 0.5*inch))
-
-            # Footer - full width with background color - match UHC style
-            footer_data = [['Thank you for your business!']]
-            footer_table = Table(footer_data, colWidths=[10.2*inch])
-            footer_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#2B5F7F')),
-                ('TEXTCOLOR', (0, 0), (-1, -1), colors.white),
-                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, -1), 9),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('TOPPADDING', (0, 0), (-1, -1), 8),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-            ]))
-            story.append(footer_table)
+            # Footer
+            PDFTemplate.build_footer(story, width=10.2*inch)
             
             doc.build(story)
             logger.info(f"Generated Jewish Home PDF: {filepath}")

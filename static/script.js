@@ -64,7 +64,7 @@ function displayResults(data) {
     currentTimestamp = data.timestamp;
 }
 
-// Download both files (ZIP + Excel) - only once
+// Download ZIP file (contains both PDFs and Excel)
 document.getElementById('downloadBtn').addEventListener('click', async function() {
     if (!currentTimestamp) return;
     
@@ -73,7 +73,6 @@ document.getElementById('downloadBtn').addEventListener('click', async function(
     downloadBtn.textContent = '⏳ Downloading...';
     
     try {
-        // Download ZIP file
         const zipResponse = await fetch(`/api/download/${currentTimestamp}`);
         if (!zipResponse.ok) {
             throw new Error('Failed to download ZIP file');
@@ -88,35 +87,18 @@ document.getElementById('downloadBtn').addEventListener('click', async function(
         window.URL.revokeObjectURL(zipUrl);
         document.body.removeChild(zipLink);
         
-        // Download Excel file (1 second delay)
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const excelResponse = await fetch(`/api/download-excel/${currentTimestamp}`);
-        if (!excelResponse.ok) {
-            throw new Error('Failed to download Excel file');
-        }
-        const excelBlob = await excelResponse.blob();
-        const excelUrl = window.URL.createObjectURL(excelBlob);
-        const excelLink = document.createElement('a');
-        excelLink.href = excelUrl;
-        excelLink.download = `processed_${currentTimestamp}.xlsx`;
-        document.body.appendChild(excelLink);
-        excelLink.click();
-        window.URL.revokeObjectURL(excelUrl);
-        document.body.removeChild(excelLink);
-        
-        // Clear files after downloads complete
+        // Clear files after download completes
         await new Promise(resolve => setTimeout(resolve, 1000));
         await clearAllFiles();
         
         downloadBtn.disabled = false;
-        downloadBtn.textContent = '📥 Download Files (ZIP + Excel)';
+        downloadBtn.textContent = '📥 Download Invoices';
         
     } catch (error) {
         console.error('Download error:', error);
         showError('Download failed: ' + error.message);
         downloadBtn.disabled = false;
-        downloadBtn.textContent = '📥 Download Files (ZIP + Excel)';
+        downloadBtn.textContent = '📥 Download Invoices';
     }
 });
 

@@ -161,55 +161,6 @@ def download_zip(timestamp):
         return jsonify({'error': f'Download failed: {str(e)}'}), 500
 
 
-@app.route('/api/download-excel/<timestamp>')
-def download_excel(timestamp):
-    """Download processed Excel file"""
-    try:
-        # Validate timestamp format
-        if not timestamp or len(timestamp) != 15:
-            logger.warning(f"Invalid timestamp format: {timestamp}")
-            return jsonify({'error': 'Invalid timestamp format'}), 400
-        
-        output_folder = os.path.join(OUTPUT_FOLDER, timestamp)
-        
-        logger.info(f"Download request for Excel from: {output_folder}")
-        
-        if not os.path.exists(output_folder):
-            logger.warning(f"Output folder not found: {output_folder}")
-            return jsonify({'error': 'Processing folder not found'}), 404
-        
-        # Find the processed Excel file
-        excel_file = None
-        try:
-            folder_contents = os.listdir(output_folder)
-            logger.info(f"Folder contents: {folder_contents}")
-            for file in folder_contents:
-                if file.startswith('processed_') and file.endswith('.xlsx'):
-                    excel_file = file
-                    logger.info(f"Found Excel file: {excel_file}")
-                    break
-        except Exception as e:
-            logger.error(f"Error listing folder: {str(e)}")
-        
-        if not excel_file:
-            logger.warning(f"No processed Excel file found in: {output_folder}")
-            return jsonify({'error': 'Processed Excel file not found'}), 404
-        
-        file_path = os.path.join(output_folder, excel_file)
-        
-        logger.info(f"Sending Excel file: {file_path}")
-    
-        
-        return send_file(
-            file_path,
-            as_attachment=True,
-            download_name=excel_file,
-            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
-    except Exception as e:
-        logger.error(f"Download Excel error: {str(e)}", exc_info=True)
-        return jsonify({'error': f'Download failed: {str(e)}'}), 500
-
 @app.route('/api/clear-files', methods=['POST'])
 def clear_files():
     """Clear all files in uploads and outputs folders"""

@@ -1,10 +1,8 @@
 import logging
 import pandas as pd
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Spacer, Paragraph
-from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import SimpleDocTemplate, Spacer
 from reportlab.lib.units import inch
-from reportlab.lib import colors
 from .base_processor import BaseProcessor
 from .pdf_template import PDFTemplate
 import os
@@ -171,40 +169,17 @@ class NJVeteransProcessor(BaseProcessor):
             styles = PDFTemplate.get_styles()
             
             # Header
-            header_left = Paragraph(f'<font size=24><b>INVOICE</b></font>', styles['title'])
-            header_right = Paragraph(
-                f'<b>{PDFTemplate.COMPANY_NAME}</b><br/>'
-                f'{PDFTemplate.COMPANY_ADDRESS}<br/>'
-                f'{PDFTemplate.COMPANY_CITY_STATE}<br/>'
-                f'{PDFTemplate.COMPANY_PHONE}<br/>'
-                f'<u>{PDFTemplate.COMPANY_EMAIL}</u><br/>'
-                f'<u>{PDFTemplate.COMPANY_WEBSITE}</u>',
-                styles['header_text']
-            )
-            story.append(PDFTemplate.create_header(header_left, header_right))
+            PDFTemplate.build_header(story)
 
             # Invoice details
             invoice_date, due_date = self._get_invoice_date_strings()
-
-            details_left = Paragraph(
-                f'<b>Invoice No.</b> {invoice_number}<br/>'
-                f'<b>Date of Issue</b> {invoice_date}<br/>'
-                f'<b>Due Date</b> {due_date}',
-                styles['normal']
-            )
-
-            details_right = Paragraph(
-                f'<b>Bill To</b><br/>'
+            bill_to = (
                 f'New Jersey Veterans Home<br/>'
                 f'Menlo Park<br/>'
                 f'732-452-4245<br/>'
-                f'<u>saar.kamanda@dmava.nj.gov</u>',
-                styles['normal']
+                f'<u>saar.kamanda@dmava.nj.gov</u>'
             )
-
-            details_data = [[details_left, details_right]]
-            story.append(PDFTemplate.create_details_section(details_data, [2*inch, 5*inch]))
-            story.append(Spacer(1, 0.2*inch))
+            PDFTemplate.build_invoice_details(story, invoice_number, invoice_date, due_date, bill_to)
 
             # Line items
             items_data = [[
@@ -238,30 +213,10 @@ class NJVeteransProcessor(BaseProcessor):
             story.append(Spacer(1, 0.3*inch))
 
             # Payment details
-            payment_left = Paragraph(
-                f'<b>Payment Details</b><br/><br/>'
-                f'<b>Bank Name</b><br/>'
-                f'<b>Company Name</b><br/>'
-                f'<b>Account number</b><br/>'
-                f'<b>Routing number</b>',
-                styles['normal']
-            )
-
-            payment_right = Paragraph(
-                f'<br/><br/>'
-                f'Chase Bank<br/>'
-                f'Fourline Travels LLC<br/>'
-                f'591661668<br/>'
-                f'021202337',
-                styles['normal']
-            )
-
-            payment_data = [[payment_left, payment_right]]
-            story.append(PDFTemplate.create_payment_section(payment_data))
-            story.append(Spacer(1, 0.5*inch))
+            PDFTemplate.build_payment_section(story)
 
             # Footer
-            story.append(PDFTemplate.create_footer('<b>Thank you for your business!</b>'))
+            PDFTemplate.build_footer(story)
             
             doc.build(story)
             logger.info(f"Generated NJ Veterans PDF: {filepath}")
