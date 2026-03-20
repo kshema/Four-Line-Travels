@@ -130,9 +130,9 @@ class PDFTemplate:
             col_widths = [2*inch, 5*inch]
         
         details_left = Paragraph(
-            f'<b>Invoice No.</b> {invoice_number}<br/>'
-            f'<b>Date of Issue</b> {invoice_date}<br/>'
-            f'<b>Due Date</b> {due_date}',
+            f'<b>Invoice No:</b> {invoice_number}<br/>'
+            f'<b>Date of Issue:</b> {invoice_date}<br/>'
+            f'<b>Due Date:</b> {due_date}',
             styles['normal']
         )
         
@@ -167,10 +167,10 @@ class PDFTemplate:
         
         payment_left = Paragraph(
             f'<b>Payment Details</b><br/><br/>'
-            f'<b>Bank Name</b><br/>'
-            f'<b>Company Name</b><br/>'
-            f'<b>Account number</b><br/>'
-            f'<b>Routing number</b>',
+            f'<b>Bank Name:</b><br/>'
+            f'<b>Company Name:</b><br/>'
+            f'<b>Account number:</b><br/>'
+            f'<b>Routing number:</b>',
             styles['normal']
         )
         

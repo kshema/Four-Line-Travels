@@ -150,16 +150,16 @@ class UHCProcessor(BaseProcessor):
             
             # Invoice details
             invoice_date, due_date = self._get_invoice_date_strings()
-            bill_to = 'UnitedHealthcare Insurance Company'
+            bill_to = 'United Healthcare Insurance Company'
             PDFTemplate.build_invoice_details(story, invoice_number, invoice_date, due_date, bill_to)
             
             # Patient info section
             facility_address = FACILITIES.get(facility_name, 'N/A')
             info_data = [
-                ['Patient Name', '', patient_name],
-                ['Member ID', '', member_id],
-                ['Date of Service', '', str(date_of_service).split()[0]],
-                ['Type of Service', '', service_type.title()],
+                ['Patient Name:', '', patient_name],
+                ['Member ID:', '', member_id],
+                ['Date of Service:', '', str(date_of_service).split()[0]],
+                ['Type of Service:', '', service_type.title()],
             ]
             
             info_table = Table(info_data, colWidths=[1.5*inch, 0.5*inch, 5*inch])
@@ -191,8 +191,8 @@ class UHCProcessor(BaseProcessor):
             if service_type.lower() in ['round trip', 'roundtrip', 'wheelchair roundtrip']:
                 billing_data = [
                     ['Item', 'Description', 'Type', 'Unit', 'Code', 'Rate (USD)', 'Amount'],
-                    ['1', Paragraph('Non-Emergent Transportation Wheelchair Van', desc_style), 'A leg', '1', base_code, f'${UHC_BASE_RATE:.2f}', f'${UHC_BASE_RATE:.2f}'],
-                    ['2', Paragraph('Non-Emergent Transportation Mileage', desc_style), 'A leg', f'{mileage_a}', mileage_code, f'${UHC_MILEAGE_RATE:.2f}', f'${mileage_a * UHC_MILEAGE_RATE:.2f}'],
+                    ['1', Paragraph('Non-Emergent Transportation Wheelchair Van', desc_style), 'A Leg', '1', base_code, f'${UHC_BASE_RATE:.2f}', f'${UHC_BASE_RATE:.2f}'],
+                    ['2', Paragraph('Non-Emergent Transportation Mileage', desc_style), 'A Leg', f'{mileage_a}', mileage_code, f'${UHC_MILEAGE_RATE:.2f}', f'${mileage_a * UHC_MILEAGE_RATE:.2f}'],
                     ['3', Paragraph('Non-Emergent Transportation Wheelchair Van', desc_style), 'B Leg', '1', base_code, f'${UHC_BASE_RATE:.2f}', f'${UHC_BASE_RATE:.2f}'],
                     ['4', Paragraph('Non-Emergent Transportation Mileage', desc_style), 'B Leg', f'{mileage_b}', mileage_code, f'${UHC_MILEAGE_RATE:.2f}', f'${mileage_b * UHC_MILEAGE_RATE:.2f}'],
                     ['', '', '', '', '', '', ''],
@@ -200,8 +200,8 @@ class UHCProcessor(BaseProcessor):
             else:
                 billing_data = [
                     ['Item', 'Description', 'Type', 'Unit', 'Code', 'Rate (USD)', 'Amount'],
-                    ['1', Paragraph('Non-Emergent Transportation Wheelchair Van', desc_style), 'A leg', '1', base_code, f'${UHC_BASE_RATE:.2f}', f'${UHC_BASE_RATE:.2f}'],
-                    ['2', Paragraph('Non-Emergent Transportation Mileage', desc_style), 'A leg', f'{mileage_a}', mileage_code, f'${UHC_MILEAGE_RATE:.2f}', f'${mileage_a * UHC_MILEAGE_RATE:.2f}'],
+                    ['1', Paragraph('Non-Emergent Transportation Wheelchair Van', desc_style), 'A Leg', '1', base_code, f'${UHC_BASE_RATE:.2f}', f'${UHC_BASE_RATE:.2f}'],
+                    ['2', Paragraph('Non-Emergent Transportation Mileage', desc_style), 'A Leg', f'{mileage_a}', mileage_code, f'${UHC_MILEAGE_RATE:.2f}', f'${mileage_a * UHC_MILEAGE_RATE:.2f}'],
                     ['', '', '', '', '', '', ''],
                 ]
             
