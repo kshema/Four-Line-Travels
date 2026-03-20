@@ -26,7 +26,7 @@ BILLING_MODES = {
     'UHC': {
         'name': 'UHC (Distance-Based)',
         'type': 'distance',
-        'columns': ['patient_name', 'invoice_number', 'member_id', 'service_type', 'date_of_service', 'facility_name', 'patient_address'],
+        'columns': ['patient_name', 'invoice_number', 'dob', 'member_id', 'service_type', 'date_of_service', 'facility_name', 'patient_address'],
         'rates': {
             'base_code': 'A0130',
             'base_rate': 85,

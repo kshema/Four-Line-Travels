@@ -65,7 +65,7 @@ class JewishHomeProcessor(BaseProcessor):
                 
                 processed_rows.append({
                     'item': item,
-                    'date_of_service': str(date_of_service),
+                    'date_of_service': self._format_date(date_of_service),
                     'confirmation_no': confirmation_no,
                     'name_of_patient': patient_name,
                     'from': from_address,
@@ -86,7 +86,7 @@ class JewishHomeProcessor(BaseProcessor):
                 
                 processed_rows.append({
                     'item': row.get('item', ''),
-                    'date_of_service': str(row.get('date of service', '')),
+                    'date_of_service': self._format_date(row.get('date of service', '')),
                     'confirmation_no': row.get('confirmation no', ''),
                     'name_of_patient': row.get('name of patient', ''),
                     'from': row.get('from', ''),
@@ -171,7 +171,7 @@ class JewishHomeProcessor(BaseProcessor):
             successful_rows = [r for r in rows if r.get('status') == 'SUCCESS']
 
             for row in successful_rows:
-                date_str = str(row.get('date_of_service', '')).split()[0]
+                date_str = row.get('date_of_service', '')
                 
                 # Wrap long addresses with smaller font size
                 from_para = Paragraph(str(row.get('from', '')), address_style)

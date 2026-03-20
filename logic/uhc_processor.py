@@ -42,6 +42,7 @@ class UHCProcessor(BaseProcessor):
                 logger.debug(f"Processing UHC row {idx}: {row.to_dict()}")
                 patient_name = row['patient name']
                 invoice_number = row['invoice number']
+                dob = row['dob']
                 member_id = row['member id']
                 service_type = row['type of service'].lower()
                 date_of_service = row['date of service']
@@ -76,7 +77,7 @@ class UHCProcessor(BaseProcessor):
                 successful += 1
                 
                 # Generate PDF
-                self._generate_uhc_pdf(invoice_number, patient_name, member_id, 
+                self._generate_uhc_pdf(invoice_number, patient_name, dob, member_id, 
                                        date_of_service, facility_name, destination_address,
                                        service_type, mileage_a_rounded, mileage_b_rounded, 
                                        amount, legs)
@@ -84,9 +85,10 @@ class UHCProcessor(BaseProcessor):
                 processed_rows.append({
                     'invoice_number': invoice_number,
                     'patient_name': patient_name,
+                    'dob': self._format_date(dob),
                     'member_id': member_id,
                     'type of service': service_type,
-                    'date_of_service': str(date_of_service),
+                    'date_of_service': self._format_date(date_of_service),
                     'facility_name': facility_name,
                     'destination_address': destination_address,
                     'distance': round(distance, 1),
@@ -103,9 +105,10 @@ class UHCProcessor(BaseProcessor):
                 processed_rows.append({
                     'invoice_number': row.get('invoice number', ''),
                     'patient_name': row.get('patient name', ''),
+                    'dob': self._format_date(row.get('dob', '')),
                     'member_id': row.get('member id', ''),
                     'type of service': row.get('type of service', ''),
-                    'date_of_service': str(row.get('date of service', '')),
+                    'date_of_service': self._format_date(row.get('date of service', '')),
                     'facility_name': row.get('facility name', ''),
                     'destination_address': row.get('destination address', ''),
                     'distance': '',
@@ -129,9 +132,10 @@ class UHCProcessor(BaseProcessor):
             'zip_path': zip_path
         }
     
-    def _generate_uhc_pdf(self, invoice_number, patient_name, member_id, 
-                         date_of_service, facility_name, destination_address,
-                         service_type, mileage_a, mileage_b, amount, legs):
+    def _generate_uhc_pdf(self, invoice_number, patient_name, dob,
+                         member_id, date_of_service, facility_name,
+                         destination_address, service_type, mileage_a,
+                         mileage_b, amount, legs):
         """Generate UHC invoice PDF using template"""
         try:
             filename = f"{invoice_number}.pdf"
@@ -155,10 +159,12 @@ class UHCProcessor(BaseProcessor):
             
             # Patient info section
             facility_address = FACILITIES.get(facility_name, 'N/A')
+            dob_str = self._format_date(dob)
             info_data = [
                 ['Patient Name:', '', patient_name],
+                ['DOB:', '', dob_str],
                 ['Member ID:', '', member_id],
-                ['Date of Service:', '', str(date_of_service).split()[0]],
+                ['Date of Service:', '', self._format_date(date_of_service)],
                 ['Type of Service:', '', service_type.title()],
             ]
             

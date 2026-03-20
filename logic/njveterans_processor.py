@@ -99,7 +99,7 @@ class NJVeteransProcessor(BaseProcessor):
                 current_items.append({
                     'item_num': len(current_items) + 1,
                     'patient_name': patient_name,
-                    'date_of_service': str(date_of_service).split()[0],
+                    'date_of_service': self._format_date(date_of_service),
                     'trip_type': service_type.title(),
                     'hours': hours,
                     'rate': NJVETERANS_HOURLY_RATE,
@@ -109,7 +109,7 @@ class NJVeteransProcessor(BaseProcessor):
                 processed_rows.append({
                     'invoice_number': current_invoice,
                     'patient_name': patient_name,
-                    'date_of_service': str(date_of_service),
+                    'date_of_service': self._format_date(date_of_service),
                     'facility_name': facility_name,
                     'destination_address': destination_address,
                     'roundtrip or one-way': service_type,
@@ -127,7 +127,7 @@ class NJVeteransProcessor(BaseProcessor):
                 processed_rows.append({
                     'invoice_number': '',
                     'patient_name': row.get('patient name', ''),
-                    'date_of_service': str(row.get('date of service', '')),
+                    'date_of_service': self._format_date(row.get('date of service', '')),
                     'facility_name': row.get('facility name', ''),
                     'destination_address': row.get('destination address', ''),
                     'roundtrip or one-way': row.get('roundtrip or one-way', ''),
