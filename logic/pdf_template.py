@@ -129,11 +129,19 @@ class PDFTemplate:
         if col_widths is None:
             col_widths = [2*inch, 5*inch]
         
+        details_left_style = ParagraphStyle(
+            'DetailsLeft',
+            parent=styles['normal'],
+            fontSize=10,
+            textColor=TEXT_COLOR,
+            alignment=0
+        )
+        
         details_left = Paragraph(
             f'<b>Invoice No:</b> {invoice_number}<br/>'
             f'<b>Date of Issue:</b> {invoice_date}<br/>'
             f'<b>Due Date:</b> {due_date}',
-            styles['normal']
+            details_left_style
         )
         
         details_right = Paragraph(
