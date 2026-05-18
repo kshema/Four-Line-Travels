@@ -29,6 +29,7 @@ class NJVeteransProcessor(BaseProcessor):
             if not invoice_number_prefix:
                 raise ValueError("Invoice number prefix is required (e.g., NJVA00050)")
             
+            invoice_number_prefix = invoice_number_prefix.strip().upper()
             self._parse_invoice_prefix(invoice_number_prefix)
             
             df = pd.read_excel(filepath)

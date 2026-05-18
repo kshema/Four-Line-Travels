@@ -20,6 +20,7 @@ FACILITIES = {
     'Optima care Harborview': '178 - 198 Ogden Ave., Jersey City, NJ 07306',
     'Acclaim Rehabilitation and Care Center (Alaris Health)': '198 Stevens Avenue, Jersey City, NJ 07305',
     'NJ Veterans Home (Menlo Park)': '132 Evergreen Rd, Edison, NJ 08837',
+    'Complete Care Summit Ridge': '20 Summit St, West Orange, NJ 07052',
 }
 
 BILLING_MODES = {

@@ -41,7 +41,7 @@ class UHCProcessor(BaseProcessor):
             try:
                 logger.debug(f"Processing UHC row {idx}: {row.to_dict()}")
                 patient_name = row['patient name']
-                invoice_number = row['invoice number']
+                invoice_number = self._normalize_invoice_number(row['invoice number'])
                 dob = row['dob']
                 member_id = row['member id']
                 service_type = row['type of service'].lower()
@@ -103,7 +103,7 @@ class UHCProcessor(BaseProcessor):
                 logger.warning(f"Row {idx} failed: {error_msg}")
                 
                 processed_rows.append({
-                    'invoice_number': row.get('invoice number', ''),
+                    'invoice_number': self._normalize_invoice_number(row.get('invoice number', '')),
                     'patient_name': row.get('patient name', ''),
                     'dob': self._format_date(row.get('dob', '')),
                     'member_id': row.get('member id', ''),

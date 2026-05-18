@@ -56,6 +56,7 @@ class JewishHomeProcessor(BaseProcessor):
         try:
             df = pd.read_excel(filepath)
             df.columns = df.columns.str.lower().str.strip()
+            invoice_number = self._normalize_invoice_number(invoice_number)
             return self._process_jewishhome(df, invoice_number)
         except Exception as e:
             logger.error(f"Error processing Jewish Home file: {str(e)}", exc_info=True)

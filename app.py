@@ -65,7 +65,7 @@ def process():
             return jsonify({'error': 'No file provided', 'success': False}), 400
         
         mode = request.form.get('mode')
-        invoice_number = request.form.get('invoice_number', '')
+        invoice_number = request.form.get('invoice_number', '').strip().upper()
         
         if not mode or mode not in BILLING_MODES:
             return jsonify({'error': 'Invalid billing mode', 'success': False}), 400

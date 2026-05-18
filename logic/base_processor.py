@@ -41,19 +41,27 @@ class BaseProcessor:
     
     @staticmethod
     def _format_date(date_val):
-        """Format date as MM-DD-YYYY"""
+        """Format date as MM/DD/YYYY"""
         try:
             if hasattr(date_val, 'strftime'):
-                return date_val.strftime('%m-%d-%Y')
+                return date_val.strftime('%m/%d/%Y')
             date_str = str(date_val).split()[0]
             if date_str in ('', 'NaT', 'nan', 'None'):
                 return ''
             if '-' in date_str and len(date_str) == 10:
                 parts = date_str.split('-')
-                return f"{parts[1]}-{parts[2]}-{parts[0]}"
+                return f"{parts[1]}/{parts[2]}/{parts[0]}"
             return date_str
         except Exception:
             return ''
+
+    @staticmethod
+    def _normalize_invoice_number(invoice_number):
+        """Normalize invoice number strings to uppercase."""
+        if invoice_number is None:
+            return ''
+        invoice_str = str(invoice_number).strip()
+        return invoice_str.upper()
     
     def _save_processed_excel(self, rows):
         """Save processed data to Excel"""
