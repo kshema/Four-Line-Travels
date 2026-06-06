@@ -15,20 +15,58 @@ class BaseProcessor:
         self.mode_key = mode_key
         self.mode_config = mode_config
         self.output_folder = output_folder
+        # Google Maps client
         self.gmaps = googlemaps.Client(key=GOOGLE_MAPS_API_KEY)
+        # Simple in-memory cache for distance lookups to reduce API calls
+        self._distance_cache = {}
     
     def _calculate_distance(self, address1, address2):
         """Calculate distance between two addresses using Google Maps API (in miles)"""
         try:
+            # Use cache to avoid repeated API calls for same origin/destination
+            cache_key = (address1, address2)
+            if cache_key in self._distance_cache:
+                return self._distance_cache[cache_key]
+
+            # Retry with exponential backoff on quota errors
+            max_retries = 5
+            delay = 0.5
             result = self.gmaps.distance_matrix(address1, address2, units="imperial")
-            
-            # Check for valid response
-            if result['rows'][0]['elements'][0].get('status') == 'ZERO_RESULTS':
-                raise ValueError(f"Cannot find route from {address1} to {address2}")
-            
-            distance_text = result['rows'][0]['elements'][0]['distance']['text']
-            distance_miles = float(distance_text.replace(' mi', '').replace(',', ''))
-            return round(distance_miles, 1)
+            attempt = 1
+            while True:
+                try:
+                    if attempt > 1:
+                        # re-run the API call on retry
+                        result = self.gmaps.distance_matrix(address1, address2, units="imperial")
+
+                    # Check for valid response
+                    element_status = result['rows'][0]['elements'][0].get('status')
+                    if element_status == 'ZERO_RESULTS':
+                        raise ValueError(f"Cannot find route from {address1} to {address2}")
+                    # Handle API-level OVER_QUERY_LIMIT returned in top-level status
+                    api_status = result.get('status') or result.get('error_message')
+                    if api_status and ('OVER_QUERY_LIMIT' in str(api_status) or 'Rate exceeded' in str(api_status)):
+                        raise Exception('OVER_QUERY_LIMIT')
+
+                    distance_text = result['rows'][0]['elements'][0]['distance']['text']
+                    distance_miles = float(distance_text.replace(' mi', '').replace(',', ''))
+                    distance_value = round(distance_miles, 1)
+                    # Cache and return
+                    self._distance_cache[cache_key] = distance_value
+                    return distance_value
+
+                except Exception as e:
+                    msg = str(e)
+                    if attempt >= max_retries or not ("OVER_QUERY_LIMIT" in msg or "Rate exceeded" in msg or "429" in msg or "OVER_QUERY_LIMIT" in msg):
+                        logger.warning(f"Distance calculation failed for {address1} to {address2}: {str(e)}")
+                        raise ValueError(f"Cannot calculate distance: {str(e)}")
+                    # backoff and retry
+                    import time
+                    time.sleep(delay * (2 ** (attempt - 1)))
+                    attempt += 1
+        except ValueError:
+            # propagate ValueError raised above
+            raise
         except Exception as e:
             logger.warning(f"Distance calculation failed for {address1} to {address2}: {str(e)}")
             raise ValueError(f"Cannot calculate distance: {str(e)}")
