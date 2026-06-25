@@ -21,6 +21,7 @@ FACILITIES = {
     'Acclaim Rehabilitation and Care Center (Alaris Health)': '198 Stevens Avenue, Jersey City, NJ 07305',
     'NJ Veterans Home (Menlo Park)': '132 Evergreen Rd, Edison, NJ 08837',
     'Complete Care Summit Ridge': '20 Summit St, West Orange, NJ 07052',
+    'Complete Care at Cedar Grove': '536 Ridge Rd, Cedar Grove, NJ 07009',
 }
 
 BILLING_MODES = {
